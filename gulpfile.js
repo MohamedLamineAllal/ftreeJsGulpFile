@@ -1,4 +1,3 @@
-// this the v4 migration
 var gulp = require('gulp'),
     watch = require('gulp-watch'),
     concat = require('gulp-concat'),
@@ -10,6 +9,8 @@ var gulp = require('gulp'),
     source = require('vinyl-source-stream')
 // include = require('gulp-include')
 
+var TaskLogger = require('gulp-task-logger');
+
 const path = require('path'),
     fs = require('fs'),
     Readable = require('stream').Readable
@@ -19,14 +20,16 @@ const path = require('path'),
 
 // });
 
+const tl = new TaskLogger();
+
 // here a watch task
 gulp.task('watch', function (done) {
     // here we tell what we want to watch (we can watch multiple files and even directories you can see /**/*.js (wildcards)  ==> all the folders including . which is current folders, and to watch all the .js files whatever the name)
     watch('./app/js/minimizableControllBar/modules/**/*.json', function () {
-        minimizableControllBar_jsonPreset()
+        minimizableControllBar_jsonPreset()//<!!!!================!!!!!!!!!!
     })
     watch('./app/js/minimizableControllBar/modules/**/*.css', function () {
-        minimizableControllBar_css()
+        minimizableControllBar_css()//<!!!!================!!!!!!!!!!
     })
 
     //json comments 
@@ -34,9 +37,9 @@ gulp.task('watch', function (done) {
     watch('./app/tempGulp/json/**/*.json', function (evt) {
         // console.log('hi there ');
         jsonCommentWatchEvt = evt
-        jsonComment()
+        jsonComment()//<!!!!================!!!!!!!!!!
     })
-    done;
+    if (done) done();
 });
 
 
@@ -46,7 +49,8 @@ var jsonCommentWatchEvt = null
 
 gulp.task('jsonComment', jsonComment);
 function jsonComment(done) {
-    jsonComment_Task(jsonCommentWatchEvt, done)
+  if (!done) tl.task("jsonComment").startLog(); //<!!!!================!!!!!!!!!!
+  jsonComment_Task(jsonCommentWatchEvt, done);
 }
 
 function jsonComment_Task(evt, done) {
@@ -63,8 +67,9 @@ function jsonComment_Task(evt, done) {
             stream.end(str.replace(/\n\s*\n/g, '\n\n'))
             stream.
                 pipe(gulp.dest('./app/json/')).on('error', console.log)
+            if (done) done();//<!!!!================!!!!!!!!!!
+            else tl.task('jsonComment').endLog();//<!!!!================!!!!!!!!!! hapy ending
         })
-    done();
 }
 
 
@@ -80,13 +85,19 @@ function getRelevantPath_usingBase(basePath, completePath) {
 
 
 // minimizableControllBar
-gulp.task('minimizableControllBar_css', minimizableControllBar_css)
+gulp.task('minimizableControllBar_css', minimizableControllBar_css)//<!!!!================!!!!!!!!!!
 
-function minimizableControllBar_css(done) {
-    return gulp.src('./app/js/minimizableControllBar/modules/**/*.css')
-        .pipe(concat('presetsAll.css')).on('error', console.log)
-        .pipe(gulp.dest('./app/js/minimizableControllBar/'))
-    done();
+function minimizableControllBar_css(done) {//<!!!!================!!!!!!!!!!
+  if (!done) tl.task("minimizableControllBar_css").startLog(); //<!!!!================!!!!!!!!!!
+  gulp
+    .src("./app/js/minimizableControllBar/modules/**/*.css")
+    .pipe(concat("presetsAll.css"))
+    .on("error", console.log)
+    .pipe(gulp.dest("./app/js/minimizableControllBar/"))
+    .on("end", () => {
+      if (done) done();
+        else tl.task("minimizableControllBar_css").endLog();//<!!!!================!!!!!!!!!!
+    });
 }
 
 
@@ -94,39 +105,51 @@ function minimizableControllBar_css(done) {
 
 gulp.task('minimizableControllBar_jsonPreset', minimizableControllBar_jsonPreset)
 function minimizableControllBar_jsonPreset(done) {
-    gulp.src('./app/js/minimizableControllBar/modules/**/*.json')
-        .pipe(gutil.buffer(function (err, files) {
-            let presetAllJsonStr = '{\n'
-            let i = 0
-            for (i = 0; i < files.length - 1; i++) {
-                let file = files[i]
-                // let presetName = path.parse(file.path).name
+  if (!done) tl.task("minimizableControllBar_jsonPreset").startLog(); //<!!!!================!!!!!!!!!!
+  gulp.src("./app/js/minimizableControllBar/modules/**/*.json").pipe(
+    gutil.buffer(function(err, files) {
+      let presetAllJsonStr = "{\n";
+      let i = 0;
+      for (i = 0; i < files.length - 1; i++) {
+        let file = files[i];
+        // let presetName = path.parse(file.path).name
 
-                let presetReadyStr = changePresetJson(file.contents.toString())
+        let presetReadyStr = changePresetJson(file.contents.toString());
 
-                presetAllJsonStr += presetReadyStr + ',\n\n'
-            }
+        presetAllJsonStr += presetReadyStr + ",\n\n";
+      }
 
-            if (!files[i].contents.toString()) {
-                presetAllJsonStr = presetAllJsonStr.substr(0, presetAllJsonStr.length - 3)
-            } else {
-                // let presetName = path.parse(files[i].path).name
+      if (!files[i].contents.toString()) {
+        presetAllJsonStr = presetAllJsonStr.substr(
+          0,
+          presetAllJsonStr.length - 3
+        );
+      } else {
+        // let presetName = path.parse(files[i].path).name
 
-                presetAllJsonStr += changePresetJson(files[i].contents.toString())
-            }
-            presetAllJsonStr += '\n}'
+        presetAllJsonStr += changePresetJson(files[i].contents.toString());
+      }
+      presetAllJsonStr += "\n}";
 
-            try {
-                var prettyFiedPresetAllJsonStr = JSON.stringify(JSON.parse(presetAllJsonStr), null, '    ')
-            } catch (err) {
-                console.log(err);
-            }
+      try {
+        var prettyFiedPresetAllJsonStr = JSON.stringify(
+          JSON.parse(presetAllJsonStr),
+          null,
+          "    "
+        );
+      } catch (err) {
+        console.log(err);
+      }
 
-            fs.writeFile('./app/js/minimizableControllBar/presetsAll.json', prettyFiedPresetAllJsonStr, console.log)
-
-        }))
-    done();
-
+      fs.writeFile(
+        "./app/js/minimizableControllBar/presetsAll.json",
+        prettyFiedPresetAllJsonStr,
+        console.log
+      );
+      if (done) done();
+          else tl.task("minimizableControllBar_jsonPreset").endLog();//<!!!!================!!!!!!!!!!
+    })
+  );
 }
 
 
